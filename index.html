@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141A1C" media="(prefers-color-scheme: dark)">
+<title>À deux</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+:root{
+  color-scheme:light dark;
+  --bg:#F2F4F1;--surface:#FFFFFF;--ink:#1C2629;--muted:#5F6E74;--line:#D5DDDA;
+  --me:#2D6E8E;--you:#B0457A;--on-me:#FFFFFF;--danger:#B3261E;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141A1C;--surface:#1D2528;--ink:#E4EAE8;--muted:#93A1A6;--line:#2E393D;
+  --me:#6FB3D4;--you:#E58BB7;--on-me:#0E1B22;--danger:#F2867E;
+}}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font:400 1rem/1.5 "Atkinson Hyperlegible",system-ui,sans-serif;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+main{max-width:560px;margin:0 auto;padding:12px 16px 120px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:8px 0 10px}
+.month h1{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,11vw,3.1rem);line-height:.95;letter-spacing:-.03em;margin:0}
+.month .year{font-family:var(--display);font-weight:600;color:var(--muted);font-size:1.1rem}
+.tools{display:flex;gap:2px}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);font-size:1.35rem;display:grid;place-items:center;cursor:pointer}
+.icon-btn:active{background:var(--line)}
+.legend{display:flex;gap:18px;font-size:.9rem;color:var(--muted);margin:0 0 10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.weekdays,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.weekdays div{text-align:center;font-size:.8rem;color:var(--muted);padding:2px 0}
+.grid{touch-action:pan-y}
+.grid button{aspect-ratio:1/1.1;border:0;border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.grid .blank{background:transparent}
+.grid .num{font-weight:700;font-size:.95rem;width:28px;height:28px;display:grid;place-items:center;border-radius:50%}
+.grid .past{color:var(--muted)}
+.grid .today .num{background:var(--ink);color:var(--bg)}
+.grid .sel{box-shadow:inset 0 0 0 2px var(--ink)}
+.marks{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;align-items:center}
+.mark{width:7px;height:7px;border-radius:50%}
+.mark.me{background:var(--me)}.mark.you{background:var(--you)}
+.more{font-size:.65rem;color:var(--muted);line-height:1}
+section{margin-top:24px}
+section h2{font-family:var(--display);font-weight:800;font-size:1.4rem;letter-spacing:-.01em;margin:0 0 10px}
+section.next h2{font-size:1.05rem;color:var(--muted);font-weight:600}
+ul.events{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ev{display:grid;grid-template-columns:5px 1fr;gap:12px;background:var(--surface);border-radius:12px;padding:12px 14px 12px 0;cursor:pointer;overflow:hidden}
+.ev::before{content:"";background:var(--c);border-radius:0 4px 4px 0}
+.ev.me{--c:var(--me)}.ev.you{--c:var(--you)}
+.ev .when{font-size:.85rem;color:var(--muted)}
+.ev .title{font-weight:700}
+.ev .note{font-size:.9rem;color:var(--muted);white-space:pre-wrap;margin-top:2px}
+.ev .who{font-size:.8rem;color:var(--c);font-weight:700}
+.new{font-size:.75rem;font-weight:700;color:var(--you);margin-left:6px}
+.empty{color:var(--muted);margin:0}
+.status{font-size:.8rem;color:var(--muted);margin-top:28px;text-align:center}
+.fab{position:fixed;right:calc(20px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:64px;height:64px;border-radius:20px;border:0;background:var(--me);color:var(--on-me);font-size:2.1rem;line-height:1;cursor:pointer;box-shadow:0 6px 18px color-mix(in srgb,var(--me) 45%,transparent)}
+dialog{border:0;padding:0;margin:auto auto 0;width:100%;max-width:560px;max-height:92vh;border-radius:22px 22px 0 0;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgb(0 0 0 / .45)}
+dialog form{padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+dialog h2{font-family:var(--display);font-weight:800;margin:0;font-size:1.5rem}
+label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:70px}
+input:focus,textarea:focus{outline:2px solid var(--me);border-color:transparent}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inline{display:flex;gap:8px}.inline input{flex:1}
+.hint{font-size:.8rem;color:var(--muted);margin:-8px 0 0}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px}
+.btn{font:inherit;font-weight:700;border-radius:12px;padding:12px 18px;border:0;cursor:pointer;background:var(--line);color:var(--ink)}
+.btn.primary{background:var(--me);color:var(--on-me)}
+.btn.danger{background:transparent;color:var(--danger);margin-right:auto;padding-left:0}
+.btn:disabled{opacity:.5}
+.toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90vw;text-align:center;z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+button:focus-visible{outline:2px solid var(--me);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div class="month"><h1 id="monthName"></h1><div class="year" id="yearName"></div></div>
+    <div class="tools">
+      <button class="icon-btn" id="prev" aria-label="Mois précédent">‹</button>
+      <button class="icon-btn" id="next" aria-label="Mois suivant">›</button>
+      <button class="icon-btn" id="refresh" aria-label="Actualiser">↻</button>
+      <button class="icon-btn" id="openSettings" aria-label="Réglages">⚙</button>
+    </div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="weekdays"><div>lun</div><div>mar</div><div>mer</div><div>jeu</div><div>ven</div><div>sam</div><div>dim</div></div>
+  <div class="grid" id="grid"></div>
+
+  <section class="day"><h2 id="dayTitle"></h2><ul class="events" id="dayList"></ul></section>
+  <section class="next"><h2>Ensuite</h2><ul class="events" id="nextList"></ul></section>
+  <p class="status" id="status"></p>
+</main>
+
+<button class="fab" id="add" aria-label="Ajouter un événement">+</button>
+
+<dialog id="evDialog">
+  <form id="evForm">
+    <h2 id="evHeading">Nouvel événement</h2>
+    <label>Quoi ?<input id="evTitle" required maxlength="120" placeholder="Dîner chez Paul"></label>
+    <div class="row">
+      <label>Date<input type="date" id="evDate" required></label>
+      <label>Heure<input type="time" id="evTime"></label>
+    </div>
+    <p class="hint">Sans heure, l'événement dure toute la journée.</p>
+    <label>Note<textarea id="evNote" maxlength="1000" placeholder="Adresse, choses à apporter…"></textarea></label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn" hidden>Supprimer</button>
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="submit" class="btn primary" id="saveBtn">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="setDialog">
+  <form id="setForm">
+    <h2>Réglages</h2>
+    <div class="row">
+      <label>Ton prénom<input id="sName" required></label>
+      <label>Son prénom<input id="sPartner"></label>
+    </div>
+    <label>Dépôt des données<input id="sRepo" required placeholder="JohnKerDoe/agenda-data" autocapitalize="off" spellcheck="false"></label>
+    <label>Jeton GitHub<input id="sToken" type="password" required autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+    <p class="hint">Jeton limité au dépôt des données, avec le droit Contents en lecture et écriture.</p>
+    <label>Mon canal ntfy (je reçois)
+      <span class="inline"><input id="sMyTopic" autocapitalize="off" spellcheck="false"><button type="button" class="btn" id="genTopic">Générer</button></span>
+    </label>
+    <label>Son canal ntfy (je préviens)<input id="sPartnerTopic" autocapitalize="off" spellcheck="false"></label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="testBtn">Tester ma notification</button>
+      <button type="button" class="btn" data-close>Fermer</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const KEY = 'adeux.settings', CACHE = 'adeux.events';
+const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+let S = read(KEY, {});
+let events = read(CACHE, []);
+let sha = null, newIds = new Set(), editing = null;
+const today = new Date();
+let view = { y: today.getFullYear(), m: today.getMonth() };
+
+/* ---------- Dates ---------- */
+const pad = n => String(n).padStart(2, '0');
+const ds = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtDay = s => cap(new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(parse(s)));
+const fmtTime = t => t ? t.replace(':', 'h') : 'Toute la journée';
+const when = e => `${fmtDay(e.date)}${e.time ? ' à ' + fmtTime(e.time) : ', toute la journée'}`;
+const todayStr = ds(today);
+let selected = todayStr;
+const sortEv = (a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || '');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isMe = e => e.author === S.name;
+
+/* ---------- GitHub ---------- */
+const b64enc = s => { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
+const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+const cfgOk = () => S.name && S.repo && S.token;
+
+function gh(method, body) {
+  const repo = S.repo.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+  return fetch(`https://api.github.com/repos/${repo}/contents/events.json`, {
+    method, cache: 'no-store',
+    headers: { Authorization: `Bearer ${S.token}`, Accept: 'application/vnd.github+json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+}
+function errMsg(status) {
+  if (status === 401) return 'Jeton GitHub refusé. Vérifie-le dans les réglages.';
+  if (status === 403) return "Ce jeton n'a pas le droit d'écrire dans le dépôt des données.";
+  if (status === 404) return 'Dépôt des données introuvable. Vérifie son nom dans les réglages.';
+  return `GitHub a répondu avec l'erreur ${status}. Réessaie dans un instant.`;
+}
+async function pull() {
+  const r = await gh('GET');
+  if (r.status === 404) { events = []; sha = null; return; }
+  if (!r.ok) throw new Error(errMsg(r.status));
+  const j = await r.json();
+  sha = j.sha;
+  const txt = b64dec(j.content || '').trim();
+  events = txt ? JSON.parse(txt) : [];
+  write(CACHE, events);
+}
+async function commit(mutate, message) {
+  if (sha === null) await pull();
+  for (let i = 0; i < 3; i++) {
+    const next = mutate(structuredClone(events)).sort(sortEv);
+    const r = await gh('PUT', { message, content: b64enc(JSON.stringify(next, null, 1)), ...(sha ? { sha } : {}) });
+    if (r.ok) { sha = (await r.json()).content.sha; events = next; write(CACHE, events); return; }
+    if (r.status === 409 || r.status === 422) { await pull(); continue; }
+    throw new Error(errMsg(r.status));
+  }
+  throw new Error("L'autre téléphone modifie l'agenda en même temps. Réessaie.");
+}
+
+/* ---------- ntfy ---------- */
+async function notify(topic, title, message) {
+  if (!topic) return false;
+  try {
+    const r = await fetch('https://ntfy.sh/', { method: 'POST', body: JSON.stringify({ topic, title, message, tags: ['calendar'], click: location.origin + location.pathname }) });
+    return r.ok;
+  } catch { return false; }
+}
+
+/* ---------- Affichage ---------- */
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+const setStatus = s => $('#status').textContent = s;
+
+function evItem(e, showDate) {
+  const who = isMe(e) ? 'me' : 'you';
+  return `<li class="ev ${who}" data-id="${esc(e.id)}" tabindex="0">
+    <div>
+      <div class="when">${showDate ? esc(when(e)) : esc(fmtTime(e.time))}${newIds.has(e.id) ? '<span class="new">Nouveau</span>' : ''}</div>
+      <div class="title">${esc(e.title)}</div>
+      ${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}
+      <div class="who">${esc(e.author || '')}</div>
+    </div></li>`;
+}
+
+function render() {
+  const first = new Date(view.y, view.m, 1);
+  $('#monthName').textContent = cap(new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(first));
+  $('#yearName').textContent = view.y;
+  $('#legend').innerHTML = `<span style="--c:var(--me)">${esc(S.name || 'Moi')}</span><span style="--c:var(--you)">${esc(S.partner || "L'autre")}</span>`;
+
+  const byDate = {};
+  for (const e of events) (byDate[e.date] ||= []).push(e);
+  const offset = (first.getDay() + 6) % 7;
+  const nDays = new Date(view.y, view.m + 1, 0).getDate();
+  let html = '<span class="blank"></span>'.repeat(offset);
+  for (let d = 1; d <= nDays; d++) {
+    const key = `${view.y}-${pad(view.m + 1)}-${pad(d)}`;
+    const list = (byDate[key] || []).sort(sortEv);
+    const marks = list.slice(0, 3).map(e => `<i class="mark ${isMe(e) ? 'me' : 'you'}"></i>`).join('') + (list.length > 3 ? `<span class="more">+${list.length - 3}</span>` : '');
+    const cls = [key === todayStr && 'today', key === selected && 'sel', key < todayStr && 'past'].filter(Boolean).join(' ');
+    const label = `${fmtDay(key)}${list.length ? `, ${list.length} événement${list.length > 1 ? 's' : ''}` : ''}`;
+    html += `<button class="${cls}" data-date="${key}" aria-label="${label}"><span class="num">${d}</span><span class="marks">${marks}</span></button>`;
+  }
+  $('#grid').innerHTML = html;
+
+  $('#dayTitle').textContent = selected === todayStr ? "Aujourd'hui" : fmtDay(selected);
+  const day = events.filter(e => e.date === selected).sort(sortEv);
+  $('#dayList').innerHTML = day.length ? day.map(e => evItem(e, false)).join('') : '<p class="empty">Rien de prévu. Touche + pour ajouter un événement.</p>';
+  const next = events.filter(e => e.date > selected).sort(sortEv).slice(0, 5);
+  $('#nextList').innerHTML = next.length ? next.map(e => evItem(e, true)).join('') : '<p class="empty">Rien après cette date.</p>';
+}
+
+/* ---------- Synchro ---------- */
+async function sync() {
+  if (!cfgOk()) { render(); return; }
+  setStatus('Synchronisation…');
+  try {
+    await pull();
+    if (S.lastSeen) {
+      newIds = new Set(events.filter(e => e.author !== S.name && (e.updatedAt || e.createdAt) > S.lastSeen).map(e => e.id));
+      if (newIds.size) toast(`${newIds.size} nouveauté${newIds.size > 1 ? 's' : ''} de ${S.partner || "l'autre"}`);
+    }
+    S.lastSeen = Date.now(); write(KEY, S);
+    setStatus(`À jour à ${fmtTime(new Date().toTimeString().slice(0, 5))}`);
+  } catch (e) {
+    setStatus(navigator.onLine ? e.message : 'Hors ligne : dernière version enregistrée affichée.');
+  }
+  render();
+}
+
+/* ---------- Événements ---------- */
+function openEvent(ev) {
+  editing = ev || null;
+  $('#evHeading').textContent = ev ? "Modifier l'événement" : 'Nouvel événement';
+  $('#evTitle').value = ev?.title || '';
+  $('#evDate').value = ev?.date || selected;
+  $('#evTime').value = ev?.time || '';
+  $('#evNote').value = ev?.note || '';
+  $('#delBtn').hidden = !ev;
+  $('#evDialog').showModal();
+}
+
+$('#evForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!cfgOk()) { toast('Complète d\'abord les réglages.'); return; }
+  const data = { title: $('#evTitle').value.trim(), date: $('#evDate').value, time: $('#evTime').value, note: $('#evNote').value.trim() };
+  if (!data.title || !data.date) return;
+  const btn = $('#saveBtn'); btn.disabled = true;
+  try {
+    let ev, verb;
+    if (editing) {
+      ev = { ...editing, ...data, updatedBy: S.name, updatedAt: Date.now() }; verb = 'a modifié';
+      await commit(a => { const i = a.findIndex(x => x.id === ev.id); i < 0 ? a.push(ev) : (a[i] = ev); return a; }, `Modifie : ${ev.title}`);
+    } else {
+      ev = { id: crypto.randomUUID(), ...data, author: S.name, createdAt: Date.now() }; verb = 'a ajouté';
+      await commit(a => { a.push(ev); return a; }, `Ajoute : ${ev.title}`);
+    }
+    $('#evDialog').close();
+    selected = ev.date; const d = parse(ev.date); view = { y: d.getFullYear(), m: d.getMonth() };
+    render();
+    const sent = await notify(S.partnerTopic, `${S.name} ${verb} « ${ev.title} »`, when(ev));
+    toast(sent ? 'Enregistré, notification envoyée' : 'Enregistré');
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; }
+});
+
+$('#delBtn').addEventListener('click', async () => {
+  const ev = editing;
+  if (!ev || !confirm(`Supprimer « ${ev.title} » ?`)) return;
+  try {
+    await commit(a => a.filter(x => x.id !== ev.id), `Supprime : ${ev.title}`);
+    $('#evDialog').close(); render();
+    const sent = await notify(S.partnerTopic, `${S.name} a supprimé « ${ev.title} »`, when(ev));
+    toast(sent ? 'Supprimé, notification envoyée' : 'Supprimé');
+  } catch (err) { toast(err.message); }
+});
+
+/* ---------- Réglages ---------- */
+function openSettings() {
+  $('#sName').value = S.name || ''; $('#sPartner').value = S.partner || '';
+  $('#sRepo').value = S.repo || ''; $('#sToken').value = S.token || '';
+  $('#sMyTopic').value = S.myTopic || ''; $('#sPartnerTopic').value = S.partnerTopic || '';
+  $('#setDialog').showModal();
+}
+$('#genTopic').addEventListener('click', () => {
+  const r = crypto.getRandomValues(new Uint8Array(12));
+  $('#sMyTopic').value = 'adeux-' + Array.from(r, b => (b % 36).toString(36)).join('');
+});
+$('#testBtn').addEventListener('click', async () => {
+  const ok = await notify($('#sMyTopic').value.trim(), 'Test À deux', 'Les notifications fonctionnent.');
+  toast(ok ? 'Test envoyé sur ton canal' : "Envoi impossible : vérifie ton canal et ta connexion.");
+});
+$('#setForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const changedRepo = S.repo !== $('#sRepo').value.trim();
+  S = { ...S, name: $('#sName').value.trim(), partner: $('#sPartner').value.trim(), repo: $('#sRepo').value.trim(),
+        token: $('#sToken').value.trim(), myTopic: $('#sMyTopic').value.trim(), partnerTopic: $('#sPartnerTopic').value.trim() };
+  if (changedRepo) { sha = null; events = []; }
+  write(KEY, S); $('#setDialog').close(); toast('Réglages enregistrés'); sync();
+});
+
+/* ---------- Navigation ---------- */
+function shift(n) { const d = new Date(view.y, view.m + n, 1); view = { y: d.getFullYear(), m: d.getMonth() }; render(); }
+$('#prev').onclick = () => shift(-1);
+$('#next').onclick = () => shift(1);
+$('#refresh').onclick = () => sync();
+$('#openSettings').onclick = openSettings;
+$('#add').onclick = () => cfgOk() ? openEvent() : openSettings();
+$('#grid').addEventListener('click', e => { const b = e.target.closest('button[data-date]'); if (b) { selected = b.dataset.date; render(); } });
+let x0 = null;
+$('#grid').addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+$('#grid').addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 60) shift(dx < 0 ? 1 : -1); x0 = null; });
+const pick = e => { const li = e.target.closest('.ev'); if (li) openEvent(events.find(x => x.id === li.dataset.id)); };
+for (const id of ['#dayList', '#nextList']) {
+  $(id).addEventListener('click', pick);
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') pick(e); });
+}
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+render();
+if (cfgOk()) sync(); else { setStatus("Commence par remplir les réglages."); openSettings(); }
+</script>
+</body>
+</html>
