@@ -49,6 +49,7 @@ main{max-width:560px;margin:0 auto;padding:12px 16px 120px}
 .marks{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;align-items:center}
 .mark{width:7px;height:7px;border-radius:50%}
 .mark.me{background:var(--me)}.mark.you{background:var(--you)}
+.mark.both{background:linear-gradient(90deg,var(--me) 50%,var(--you) 50%)}
 .more{font-size:.65rem;color:var(--muted);line-height:1}
 section{margin-top:24px}
 section h2{font-family:var(--display);font-weight:800;font-size:1.4rem;letter-spacing:-.01em;margin:0 0 10px}
@@ -57,6 +58,8 @@ ul.events{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
 .ev{display:grid;grid-template-columns:5px 1fr;gap:12px;background:var(--surface);border-radius:12px;padding:12px 14px 12px 0;cursor:pointer;overflow:hidden}
 .ev::before{content:"";background:var(--c);border-radius:0 4px 4px 0}
 .ev.me{--c:var(--me)}.ev.you{--c:var(--you)}
+.ev.both::before{background:linear-gradient(var(--me),var(--you))}
+.ev.both .who{color:var(--muted)}
 .ev .when{font-size:.85rem;color:var(--muted)}
 .ev .title{font-weight:700}
 .ev .note{font-size:.9rem;color:var(--muted);white-space:pre-wrap;margin-top:2px}
@@ -70,15 +73,28 @@ dialog::backdrop{background:rgb(0 0 0 / .45)}
 dialog form{padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 dialog h2{font-family:var(--display);font-weight:800;margin:0;font-size:1.5rem}
 label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
-input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%;min-width:0}
+[hidden]{display:none!important}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%;min-width:0}
 textarea{resize:vertical;min-height:70px}
-input:focus,textarea:focus{outline:2px solid var(--me);border-color:transparent}
+select{appearance:auto}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--me);border-color:transparent}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .inline{display:flex;gap:8px}.inline input{flex:1}
+label.check{flex-direction:row;align-items:center;gap:12px;color:var(--ink);font-size:1rem;cursor:pointer}
+label.check input{width:22px;height:22px;padding:0;accent-color:var(--me);flex:none}
 .hint{font-size:.8rem;color:var(--muted);margin:-8px 0 0}
 .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px}
 .btn{font:inherit;font-weight:700;border-radius:12px;padding:12px 18px;border:0;cursor:pointer;background:var(--line);color:var(--ink)}
 .btn.primary{background:var(--me);color:var(--on-me)}
+.btn.warn{background:var(--danger);color:var(--surface)}
+.rep{margin-left:6px}
+.sub{font-size:.9rem;color:var(--muted);margin:0 0 -6px}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.days button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;padding:0}
+.days button[aria-pressed="true"]{background:var(--me);border-color:var(--me);color:var(--on-me)}
+.freq{display:flex;gap:10px}.freq input{width:80px;flex:none}.freq select{width:auto;flex:1}
+.endrow{display:flex;align-items:center;gap:10px;min-height:48px}
+.endrow input[type=date]{width:auto;flex:1}.endrow input[type=number]{width:80px}
 .btn.danger{background:transparent;color:var(--danger);margin-right:auto;padding-left:0}
 .btn:disabled{opacity:.5}
 .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90vw;text-align:center;z-index:10}
@@ -118,6 +134,17 @@ button:focus-visible{outline:2px solid var(--me);outline-offset:2px}
       <label>Heure<input type="time" id="evTime"></label>
     </div>
     <p class="hint">Sans heure, l'événement dure toute la journée.</p>
+    <label>Répétition<select id="evRepeat">
+      <option value="">Une seule fois</option>
+      <option value="daily">Tous les jours</option>
+      <option value="weekly">Toutes les semaines</option>
+      <option value="monthly">Tous les mois</option>
+      <option value="yearly">Tous les ans</option>
+      <option value="cur" id="optCur" hidden></option>
+      <option value="custom">Personnalisé…</option>
+    </select></label>
+    <p class="hint" id="seriesHint" hidden>Les changements s'appliquent à toute la série. La date est celle du premier événement.</p>
+    <label class="check"><input type="checkbox" id="evBoth">Ça nous concerne tous les deux</label>
     <label>Note<textarea id="evNote" maxlength="1000" placeholder="Adresse, choses à apporter…"></textarea></label>
     <div class="actions">
       <button type="button" class="btn danger" id="delBtn" hidden>Supprimer</button>
@@ -149,6 +176,50 @@ button:focus-visible{outline:2px solid var(--me);outline-offset:2px}
   </form>
 </dialog>
 
+<dialog id="repDialog">
+  <form>
+    <h2>Récurrence personnalisée</h2>
+    <p class="sub">Fréquence de répétition</p>
+    <div class="freq">
+      <input type="number" id="rInt" min="1" max="99" inputmode="numeric" aria-label="Intervalle">
+      <select id="rUnit" aria-label="Unité">
+        <option value="daily">jour</option>
+        <option value="weekly">semaine</option>
+        <option value="monthly">mois</option>
+        <option value="yearly">an</option>
+      </select>
+    </div>
+    <div id="rDaysWrap">
+      <p class="sub" style="margin-bottom:8px">Le</p>
+      <div class="days" id="rDays">
+        <button type="button" data-d="0" aria-label="lundi">L</button><button type="button" data-d="1" aria-label="mardi">M</button><button type="button" data-d="2" aria-label="mercredi">M</button><button type="button" data-d="3" aria-label="jeudi">J</button><button type="button" data-d="4" aria-label="vendredi">V</button><button type="button" data-d="5" aria-label="samedi">S</button><button type="button" data-d="6" aria-label="dimanche">D</button>
+      </div>
+    </div>
+    <p class="sub">Se termine</p>
+    <div>
+      <div class="endrow"><label class="check"><input type="radio" name="rEnd" value="never">Jamais</label></div>
+      <div class="endrow"><label class="check"><input type="radio" name="rEnd" value="until">Le</label><input type="date" id="rUntil" aria-label="Date de fin"></div>
+      <div class="endrow"><label class="check"><input type="radio" name="rEnd" value="count">Après</label><input type="number" id="rCount" min="1" max="999" inputmode="numeric" aria-label="Nombre d'occurrences"><span>occurrences</span></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="button" class="btn primary" id="rDone">Terminé</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="delDialog">
+  <form>
+    <h2>Supprimer un événement répété</h2>
+    <p id="delText" style="margin:0"></p>
+    <div class="actions">
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="button" class="btn" id="delOne">Seulement cette fois</button>
+      <button type="button" class="btn warn" id="delAll">Toute la série</button>
+    </div>
+  </form>
+</dialog>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -176,6 +247,51 @@ let selected = todayStr;
 const sortEv = (a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || '');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isMe = e => e.author === S.name;
+const WD = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
+const wd = s => (parse(s).getDay() + 6) % 7; // lundi = 0
+const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const fmtShort = s => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(parse(s));
+// Compatibilité avec l'ancien format ("biweekly")
+const norm = r => !r ? null : r.freq === 'biweekly' ? { ...r, freq: 'weekly', interval: 2 } : { interval: 1, ...r };
+function repText(e) {
+  const r = norm(e.repeat); if (!r) return '';
+  const n = r.interval;
+  const base = { daily: n > 1 ? `Tous les ${n} jours` : 'Tous les jours', weekly: n > 1 ? `Toutes les ${n} semaines` : 'Toutes les semaines',
+                 monthly: n > 1 ? `Tous les ${n} mois` : 'Tous les mois', yearly: n > 1 ? `Tous les ${n} ans` : 'Tous les ans' }[r.freq];
+  const days = r.freq === 'weekly' && r.days?.length ? ' le ' + [...r.days].sort().map(d => WD[d]).join(', ') : '';
+  const end = r.count ? `, ${r.count} fois` : r.until ? `, jusqu'au ${fmtShort(r.until)}` : '';
+  return base + days + end;
+}
+function occursOn(e, s, ignoreEnd) {
+  const r = norm(e.repeat);
+  if (!r) return e.date === s;
+  if (s < e.date) return false;
+  if (!ignoreEnd && ((r.until && s > r.until) || e.exdates?.includes(s))) return false;
+  const n = r.interval || 1, a = parse(e.date), b = parse(s);
+  switch (r.freq) {
+    case 'daily': return (dayNum(s) - dayNum(e.date)) % n === 0;
+    case 'weekly': {
+      const days = r.days?.length ? r.days : [wd(e.date)];
+      if (!days.includes(wd(s))) return false;
+      return Math.floor(((dayNum(s) - wd(s)) - (dayNum(e.date) - wd(e.date))) / 7) % n === 0;
+    }
+    case 'monthly': return b.getDate() === a.getDate() && ((b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth()) % n === 0;
+    case 'yearly': return s.slice(5) === e.date.slice(5) && (b.getFullYear() - a.getFullYear()) % n === 0;
+  }
+  return false;
+}
+// Date de la n-ième occurrence (pour "Après n occurrences")
+function lastOfCount(date, r) {
+  const tmp = { date, repeat: { ...r, until: '' } }, d0 = parse(date); let k = 0;
+  for (let i = 0; i < 40000; i++) {
+    const s = ds(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i));
+    if (occursOn(tmp, s, true) && ++k >= r.count) return s;
+  }
+  return '';
+}
+const on = s => events.filter(e => occursOn(e, s)).map(e => ({ ...e, occ: s })).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+let editOcc = null;
+const whoCls = e => e.both ? 'both' : isMe(e) ? 'me' : 'you';
 
 /* ---------- GitHub ---------- */
 const b64enc = s => { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
@@ -235,13 +351,13 @@ function toast(msg) {
 const setStatus = s => $('#status').textContent = s;
 
 function evItem(e, showDate) {
-  const who = isMe(e) ? 'me' : 'you';
-  return `<li class="ev ${who}" data-id="${esc(e.id)}" tabindex="0">
+  const who = whoCls(e);
+  return `<li class="ev ${who}" data-id="${esc(e.id)}" data-occ="${e.occ}" tabindex="0">
     <div>
-      <div class="when">${showDate ? esc(when(e)) : esc(fmtTime(e.time))}${newIds.has(e.id) ? '<span class="new">Nouveau</span>' : ''}</div>
+      <div class="when">${showDate ? esc(when({ ...e, date: e.occ })) : esc(fmtTime(e.time))}${e.repeat ? `<span class="rep" title="${esc(repText(e))}">↻</span>` : ''}${newIds.has(e.id) ? '<span class="new">Nouveau</span>' : ''}</div>
       <div class="title">${esc(e.title)}</div>
       ${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}
-      <div class="who">${esc(e.author || '')}</div>
+      <div class="who">${e.both ? 'Nous deux, ajouté par ' + esc(e.author || '') : esc(e.author || '')}</div>
     </div></li>`;
 }
 
@@ -249,17 +365,15 @@ function render() {
   const first = new Date(view.y, view.m, 1);
   $('#monthName').textContent = cap(new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(first));
   $('#yearName').textContent = view.y;
-  $('#legend').innerHTML = `<span style="--c:var(--me)">${esc(S.name || 'Moi')}</span><span style="--c:var(--you)">${esc(S.partner || "L'autre")}</span>`;
+  $('#legend').innerHTML = `<span style="--c:var(--me)">${esc(S.name || 'Moi')}</span><span style="--c:var(--you)">${esc(S.partner || "L'autre")}</span><span style="--c:linear-gradient(90deg,var(--me) 50%,var(--you) 50%)">Nous deux</span>`;
 
-  const byDate = {};
-  for (const e of events) (byDate[e.date] ||= []).push(e);
   const offset = (first.getDay() + 6) % 7;
   const nDays = new Date(view.y, view.m + 1, 0).getDate();
   let html = '<span class="blank"></span>'.repeat(offset);
   for (let d = 1; d <= nDays; d++) {
     const key = `${view.y}-${pad(view.m + 1)}-${pad(d)}`;
-    const list = (byDate[key] || []).sort(sortEv);
-    const marks = list.slice(0, 3).map(e => `<i class="mark ${isMe(e) ? 'me' : 'you'}"></i>`).join('') + (list.length > 3 ? `<span class="more">+${list.length - 3}</span>` : '');
+    const list = on(key);
+    const marks = list.slice(0, 3).map(e => `<i class="mark ${whoCls(e)}"></i>`).join('') + (list.length > 3 ? `<span class="more">+${list.length - 3}</span>` : '');
     const cls = [key === todayStr && 'today', key === selected && 'sel', key < todayStr && 'past'].filter(Boolean).join(' ');
     const label = `${fmtDay(key)}${list.length ? `, ${list.length} événement${list.length > 1 ? 's' : ''}` : ''}`;
     html += `<button class="${cls}" data-date="${key}" aria-label="${label}"><span class="num">${d}</span><span class="marks">${marks}</span></button>`;
@@ -267,9 +381,11 @@ function render() {
   $('#grid').innerHTML = html;
 
   $('#dayTitle').textContent = selected === todayStr ? "Aujourd'hui" : fmtDay(selected);
-  const day = events.filter(e => e.date === selected).sort(sortEv);
+  const day = on(selected);
   $('#dayList').innerHTML = day.length ? day.map(e => evItem(e, false)).join('') : '<p class="empty">Rien de prévu. Touche + pour ajouter un événement.</p>';
-  const next = events.filter(e => e.date > selected).sort(sortEv).slice(0, 5);
+  const next = [], d0 = parse(selected);
+  for (let i = 1; i <= 400 && next.length < 5; i++) next.push(...on(ds(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i))));
+  next.length = Math.min(next.length, 5);
   $('#nextList').innerHTML = next.length ? next.map(e => evItem(e, true)).join('') : '<p class="empty">Rien après cette date.</p>';
 }
 
@@ -292,13 +408,78 @@ async function sync() {
 }
 
 /* ---------- Événements ---------- */
-function openEvent(ev) {
-  editing = ev || null;
+let formRep = null, prevSel = '';
+const formDate = () => $('#evDate').value || selected;
+function isPreset(r) {
+  return r.interval === 1 && !r.until && !r.count && (r.freq !== 'weekly' || !r.days?.length || (r.days.length === 1 && r.days[0] === wd(formDate())));
+}
+function setRepSelect(r) {
+  formRep = norm(r);
+  const sel = $('#evRepeat'), cur = $('#optCur');
+  if (!formRep) { sel.value = ''; cur.hidden = true; }
+  else if (isPreset(formRep)) { sel.value = formRep.freq; cur.hidden = true; }
+  else { cur.textContent = repText({ repeat: formRep }); cur.hidden = false; sel.value = 'cur'; }
+  prevSel = sel.value;
+}
+$('#evRepeat').addEventListener('change', () => {
+  const v = $('#evRepeat').value;
+  if (v === 'custom') return openRepDialog();
+  if (v !== 'cur') { formRep = v ? { freq: v, interval: 1 } : null; $('#optCur').hidden = true; }
+  prevSel = v;
+});
+function syncUnit() {
+  const n = parseInt($('#rInt').value) || 1, pl = n > 1;
+  $('#rDaysWrap').hidden = $('#rUnit').value !== 'weekly';
+  const t = { daily: pl ? 'jours' : 'jour', weekly: pl ? 'semaines' : 'semaine', monthly: 'mois', yearly: pl ? 'ans' : 'an' };
+  for (const o of $('#rUnit').options) o.textContent = t[o.value];
+}
+$('#rUnit').addEventListener('change', syncUnit);
+$('#rInt').addEventListener('input', syncUnit);
+$('#rDays').addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
+$('#rUntil').addEventListener('focus', () => document.querySelector('input[name=rEnd][value=until]').checked = true);
+$('#rCount').addEventListener('focus', () => document.querySelector('input[name=rEnd][value=count]').checked = true);
+function openRepDialog() {
+  const date = formDate(), d = parse(date);
+  const r = formRep ? { ...formRep } : { freq: 'weekly', interval: 1 };
+  $('#rInt').value = r.interval || 1; $('#rUnit').value = r.freq;
+  const days = r.days?.length ? r.days : [wd(date)];
+  document.querySelectorAll('#rDays button').forEach(b => b.setAttribute('aria-pressed', days.includes(+b.dataset.d)));
+  document.querySelector(`input[name=rEnd][value=${r.count ? 'count' : r.until ? 'until' : 'never'}]`).checked = true;
+  $('#rUntil').value = r.until && !r.count ? r.until : ds(new Date(d.getFullYear(), d.getMonth() + 1, d.getDate()));
+  $('#rCount').value = r.count || 10;
+  syncUnit(); $('#repDialog').showModal();
+}
+$('#rDone').addEventListener('click', () => {
+  const date = formDate();
+  const r = { freq: $('#rUnit').value, interval: Math.max(1, parseInt($('#rInt').value) || 1) };
+  if (r.freq === 'weekly') {
+    r.days = [...document.querySelectorAll('#rDays button[aria-pressed=true]')].map(b => +b.dataset.d);
+    if (!r.days.length) r.days = [wd(date)];
+  }
+  const end = document.querySelector('input[name=rEnd]:checked').value;
+  if (end === 'until') {
+    if (!$('#rUntil').value || $('#rUntil').value < date) { toast('Choisis une date de fin après le premier événement.'); return; }
+    r.until = $('#rUntil').value;
+  }
+  if (end === 'count') r.count = Math.max(1, parseInt($('#rCount').value) || 1);
+  formRep = r;
+  $('#optCur').textContent = repText({ repeat: r }); $('#optCur').hidden = false;
+  prevSel = 'cur'; $('#evRepeat').value = 'cur';
+  $('#repDialog').close();
+});
+// Annulation : on revient au choix précédent
+$('#repDialog').addEventListener('close', () => { if ($('#evRepeat').value === 'custom') $('#evRepeat').value = prevSel; });
+
+function openEvent(ev, occ) {
+  editing = ev || null; editOcc = occ || null;
+  $('#seriesHint').hidden = !ev?.repeat;
   $('#evHeading').textContent = ev ? "Modifier l'événement" : 'Nouvel événement';
   $('#evTitle').value = ev?.title || '';
   $('#evDate').value = ev?.date || selected;
   $('#evTime').value = ev?.time || '';
   $('#evNote').value = ev?.note || '';
+  $('#evBoth').checked = !!ev?.both;
+  setRepSelect(ev?.repeat);
   $('#delBtn').hidden = !ev;
   $('#evDialog').showModal();
 }
@@ -306,8 +487,11 @@ function openEvent(ev) {
 $('#evForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (!cfgOk()) { toast('Complète d\'abord les réglages.'); return; }
-  const data = { title: $('#evTitle').value.trim(), date: $('#evDate').value, time: $('#evTime').value, note: $('#evNote').value.trim() };
+  const data = { title: $('#evTitle').value.trim(), date: $('#evDate').value, time: $('#evTime').value, note: $('#evNote').value.trim(), both: $('#evBoth').checked };
+  data.repeat = formRep ? { ...formRep } : null;
   if (!data.title || !data.date) return;
+  if (data.repeat?.count) data.repeat.until = lastOfCount(data.date, data.repeat);
+  if (data.repeat?.until && data.repeat.until < data.date) { toast('La date de fin doit être après le premier événement.'); return; }
   const btn = $('#saveBtn'); btn.disabled = true;
   try {
     let ev, verb;
@@ -319,24 +503,34 @@ $('#evForm').addEventListener('submit', async e => {
       await commit(a => { a.push(ev); return a; }, `Ajoute : ${ev.title}`);
     }
     $('#evDialog').close();
-    selected = ev.date; const d = parse(ev.date); view = { y: d.getFullYear(), m: d.getMonth() };
+    if (!(editOcc && occursOn(ev, editOcc))) selected = ev.date;
+    const d = parse(selected); view = { y: d.getFullYear(), m: d.getMonth() };
     render();
-    const sent = await notify(S.partnerTopic, `${S.name} ${verb} « ${ev.title} »`, when(ev));
+    const sent = await notify(S.partnerTopic, `${S.name} ${verb} « ${ev.title} »`, when(ev) + (ev.repeat ? '\n' + repText(ev) : '') + (ev.both ? '\nPour vous deux' : ''));
     toast(sent ? 'Enregistré, notification envoyée' : 'Enregistré');
   } catch (err) { toast(err.message); }
   finally { btn.disabled = false; }
 });
 
-$('#delBtn').addEventListener('click', async () => {
-  const ev = editing;
-  if (!ev || !confirm(`Supprimer « ${ev.title} » ?`)) return;
+async function removeEvent(ev, onlyOcc) {
   try {
-    await commit(a => a.filter(x => x.id !== ev.id), `Supprime : ${ev.title}`);
-    $('#evDialog').close(); render();
-    const sent = await notify(S.partnerTopic, `${S.name} a supprimé « ${ev.title} »`, when(ev));
+    if (onlyOcc) await commit(a => { const x = a.find(y => y.id === ev.id); if (x) x.exdates = [...(x.exdates || []), onlyOcc]; return a; }, `Supprime le ${onlyOcc} : ${ev.title}`);
+    else await commit(a => a.filter(x => x.id !== ev.id), `Supprime : ${ev.title}`);
+    $('#delDialog').close(); $('#evDialog').close(); render();
+    const detail = onlyOcc ? `Seulement le ${fmtDay(onlyOcc).toLowerCase()}` : ev.repeat ? `Toute la série (${repText(ev).toLowerCase()})` : when(ev);
+    const sent = await notify(S.partnerTopic, `${S.name} a supprimé « ${ev.title} »`, detail);
     toast(sent ? 'Supprimé, notification envoyée' : 'Supprimé');
   } catch (err) { toast(err.message); }
+}
+$('#delBtn').addEventListener('click', () => {
+  const ev = editing; if (!ev) return;
+  if (!ev.repeat) { if (confirm(`Supprimer « ${ev.title} » ?`)) removeEvent(ev); return; }
+  $('#delText').textContent = `« ${ev.title} » se répète : ${repText(ev).toLowerCase()}.`;
+  $('#delOne').textContent = `Seulement le ${fmtDay(editOcc || ev.date).toLowerCase()}`;
+  $('#delDialog').showModal();
 });
+$('#delOne').addEventListener('click', () => removeEvent(editing, editOcc || editing.date));
+$('#delAll').addEventListener('click', () => removeEvent(editing));
 
 /* ---------- Réglages ---------- */
 function openSettings() {
@@ -373,7 +567,7 @@ $('#grid').addEventListener('click', e => { const b = e.target.closest('button[d
 let x0 = null;
 $('#grid').addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
 $('#grid').addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 60) shift(dx < 0 ? 1 : -1); x0 = null; });
-const pick = e => { const li = e.target.closest('.ev'); if (li) openEvent(events.find(x => x.id === li.dataset.id)); };
+const pick = e => { const li = e.target.closest('.ev'); if (li) openEvent(events.find(x => x.id === li.dataset.id), li.dataset.occ); };
 for (const id of ['#dayList', '#nextList']) {
   $(id).addEventListener('click', pick);
   $(id).addEventListener('keydown', e => { if (e.key === 'Enter') pick(e); });
